@@ -1,11 +1,15 @@
 const User = require('../models/user.model');
 const jwt = require('jsonwebtoken');
 const Invite = require('../models/invite.model');
+const {validatePassword, validateUsername} =require('../utils/validators')
 
-exports.register = async ({ name, email, password, role, invitationCode }) => {
-  if (!name || !email || !password || !role) {
-    throw new Error('Data tidak lengkap (name, email, password, role wajib diisi)');
+exports.register = async ({ name, username, password, role, invitationCode }) => {
+
+  if (!name || !username || !password || !role) {
+    throw new Error('Data tidak lengkap (name, username, password, role wajib diisi)');
   }
+    validateUsername(username);
+  validatePassword(password);
 
   if (role === 'staff') {
     const invite = await Invite.findOne({ code: invitationCode });
@@ -16,12 +20,12 @@ exports.register = async ({ name, email, password, role, invitationCode }) => {
     await invite.save();
   }
 
-  const existing = await User.findOne({ email });
-  if (existing) throw new Error('Email sudah digunakan');
+  const existing = await User.findOne({ username });
+  if (existing) throw new Error('Username sudah digunakan');
 
   const user = new User({
     name,
-    email,
+    username,
     password: password,
     role,
     permissions: role === 'staff' ? {
@@ -42,10 +46,10 @@ exports.register = async ({ name, email, password, role, invitationCode }) => {
   return;
 };
 
-exports.login = async (email, password) => {
-    console.log(email)
-    console.log(password)
-  const user = await User.findOne({ email });
+exports.login = async (username, password) => {
+  validateUsername(username);
+  validatePassword(password);
+  const user = await User.findOne({ username });
   if (!user) throw new Error('User not found');
 
   const isMatch = await user.comparePassword(password);
