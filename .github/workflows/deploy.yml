@@ -1,27 +1,49 @@
-name: Node.js CI Check
+name: CI/CD Backend - Docker
 
 on:
-  push:
-    branches: [ "main" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [main]
+  push:
+    branches: [main]
 
 jobs:
-  build-and-test:
+  docker-build-test:
     runs-on: ubuntu-latest
+    env:
+      PORT: ${{ secrets.PORT }}
+      MONGODB_URI: ${{ secrets.MONGODB_URI }}
+
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v3
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
         with:
-          node-version: '20.x'
-          cache: 'npm'
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Install dependencies
-        run: npm ci
-        
-        env:
-          PORT: 3000
-          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+      - name: Build Docker Image
+        run: |
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/cmw-backend:latest .
+
+      - name: Run Docker Container to Test
+        run: |
+          docker run -d --name cmw-backend-test \
+            -e PORT=$PORT \
+            -e MONGODB_URI=$MONGODB_URI \
+            -e JWT_SECRET=$JWT_SECRET \
+            -p 3000:3000 \
+            ${{ secrets.DOCKERHUB_USERNAME }}/cmw-backend:latest
+
+          sleep 10
+
+          curl --fail http://localhost:3000/api/ping || (echo "❌ API tidak merespon" && docker logs cmw-backend-test && exit 1)
+
+      - name: Push Docker Image to Docker Hub
+        if: github.ref == 'refs/heads/main'
+        run: |
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/cmw-backend:latest
