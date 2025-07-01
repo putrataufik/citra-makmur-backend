@@ -41,7 +41,7 @@ jobs:
 
           sleep 10
 
-          curl --fail http://localhost:3000/api/ping || (echo "❌ API tidak merespon" && docker logs cmw-backend-test && exit 1)
+          curl --fail http://localhost:3000/api/ || (echo "❌ API tidak merespon" && docker logs cmw-backend-test && exit 1)
 
       - name: Push Docker Image to Docker Hub
         if: github.ref == 'refs/heads/main'
