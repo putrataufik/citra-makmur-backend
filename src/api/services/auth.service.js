@@ -1,7 +1,8 @@
 const User = require('../models/user.model');
 const jwt = require('jsonwebtoken');
 const Invite = require('../models/invite.model');
-const {validatePassword, validateUsername} =require('../utils/validators')
+const {validatePassword, validateUsername} =require('../utils/validators');
+const { logAudit } = require("../utils/logAudit");
 
 exports.register = async ({ name, username, password, role, invitationCode }) => {
 
@@ -49,15 +50,21 @@ exports.register = async ({ name, username, password, role, invitationCode }) =>
 exports.login = async (username, password) => {
   validateUsername(username);
   validatePassword(password);
+  
   const user = await User.findOne({ username });
   if (!user) throw new Error('User not found');
 
   const isMatch = await user.comparePassword(password);
   if (!isMatch) throw new Error('Invalid credentials');
 
-  const token = jwt.sign({ userId: user._id, role: user.role }, process.env.JWT_SECRET, {
+  // ✅ Tambahkan permissions ke token
+  const token = jwt.sign({
+    userId: user._id,
+    role: user.role,
+    permissions: user.permissions || {} // aman kalau admin tidak punya permissions
+  }, process.env.JWT_SECRET, {
     expiresIn: '1d'
   });
-
+  await logAudit(username, "LOGIN", "Login Ke CMW");
   return { token, user };
 };

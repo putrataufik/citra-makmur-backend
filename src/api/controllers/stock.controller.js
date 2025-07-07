@@ -1,20 +1,22 @@
 const stockService = require('../services/stock.service');
-
 exports.stockIn = async (req, res) => {
   try {
-    if (!req.user.permissions?.canRecordStockIn) {
+    if (req.user.role !== 'admin' && !req.user.permissions?.canRecordStockIn) {
       return res.status(403).json({ message: 'Tidak memiliki izin untuk menambahkan stok' });
     }
 
-    const { productId, quantity, unit = 'pcs', note } = req.body;
+    const { productId, quantity, unit = 'pcs', note, capital } = req.body;
+
     const result = await stockService.recordStockTransaction({
       productId,
       type: 'in',
       quantity,
       unit,
+      capital,
       source: 'manual',
       note,
-      userId: req.user._id
+      userId: req.user._id,
+      userName: req.user.username, // ← kirim username ke service
     });
 
     res.status(201).json({ message: 'Stok masuk berhasil dicatat', result });
@@ -25,19 +27,22 @@ exports.stockIn = async (req, res) => {
 
 exports.stockOut = async (req, res) => {
   try {
-    if (!req.user.permissions?.canRecordStockOut) {
+    if (req.user.role !== 'admin' && !req.user.permissions?.canRecordStockOut) {
       return res.status(403).json({ message: 'Tidak memiliki izin untuk mengurangi stok' });
     }
 
-    const { productId, quantity, unit = 'pcs', note } = req.body;
+    const { productId, quantity, unit = 'pcs', note, capital } = req.body;
+
     const result = await stockService.recordStockTransaction({
       productId,
       type: 'out',
       quantity,
       unit,
+      capital,
       source: 'manual',
       note,
-      userId: req.user._id
+      userId: req.user._id,
+      userName: req.user.username, // ← kirim username ke service
     });
 
     res.status(201).json({ message: 'Stok keluar berhasil dicatat', result });
@@ -46,6 +51,7 @@ exports.stockOut = async (req, res) => {
   }
 };
 
+
 exports.scanAndRecordStock = async (req, res) => {
   try {
     const { type } = req.params;
@@ -53,16 +59,17 @@ exports.scanAndRecordStock = async (req, res) => {
       return res.status(400).json({ error: "Tipe harus 'in' atau 'out'" });
     }
 
-    const result = await scanService.scanAndRecordStock({
+    const result = await stockService.scanAndRecordStock({
       file: req.file,
       type,
       userId: req.user._id
     });
 
     res.status(200).json({
-      message: `Transaksi stock ${type} berhasil diproses`,
-      ...result
-    });
+  message: `Transaksi stock ${type} berhasil diproses`,
+  results: result
+});
+
   } catch (err) {
     res.status(400).json({ error: err.message });
   }

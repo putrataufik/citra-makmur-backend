@@ -13,6 +13,7 @@ exports.register = async (req, res) => {
 exports.login = async (req, res) => {
   try {
     const { token } = await authService.login(req.body.username, req.body.password);
+    
     res.json({ token, message: 'Login sukses' });
   } catch (err) {
     res.status(401).json({ message: err.message });
