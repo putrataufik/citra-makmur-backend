@@ -4,6 +4,7 @@ const productSchema = new mongoose.Schema({
   name: { type: String, required: true },
   sku: { type: String, required: true, unique: true },
   category: { type: String },
+  capital:{type:Number, required: true},
   stock: { type: Number, default: 0 }, // selalu disimpan dalam pcs
   description: { type: String },
   imageUrl: { type: String },

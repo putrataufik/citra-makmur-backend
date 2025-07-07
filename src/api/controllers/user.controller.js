@@ -3,7 +3,6 @@ const userService = require('../services/user.service');
 // GET /auth/profile
 exports.getProfile = async (req, res) => {
   try {
-    console.log("req.user:", req.user); // DEBUG
     const user = await userService.getProfile(req.user._id); // ← FIX di sini
     res.json({ user });
   } catch (err) {
